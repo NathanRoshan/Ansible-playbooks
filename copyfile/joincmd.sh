@@ -1,0 +1,1 @@
+kubeadm join 172.15.100.100:6443 --token 35twsn.a3bvnpu48tg0l7x2     --discovery-token-ca-cert-hash sha256:dc8443972c44862b0ee4d6e29353eadf92cb27d189955fc8631447715f2bec18 

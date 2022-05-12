@@ -1,0 +1,82 @@
+---
+- name: This is for MongoDB Installation
+  hosts: mongo3
+  become: yes
+
+  tasks:
+    
+#  - name: Include Initiate task
+#    include_tasks: ../../tasks/initial-setup.yml  
+
+  - name: MongoDB reposotory configuration
+    copy :
+      src : /home/kubernetes/repository/mongodb-org-5.0.repo
+      dest : /etc/yum.repos.d/mongodb-org-5.0.repo
+
+  - name: Disabling SELinux state
+    selinux:
+      state: disabled
+ 
+  - name: install mongo
+    yum:
+      name: mongodb-org
+      state: present
+
+  - firewalld:
+        port: 27017/tcp
+        zone: public
+        permanent: yes
+        state: enabled
+
+  - name: create a new directory for MongoDB data
+    command: mkdir -p /storage/mongodata
+
+  - name: change the owner of that directory to mongod user
+    command: chown -R mongod:mongod /storage/mongodata
+
+  - name: change the owner of that directory to mongod user
+    command: chown -R mongod:mongod /var/log/mongodb/mongod.log
+ 
+#  - name: rename the org file 
+#    command: chdir=/etc mv mongod.conf mongod-org.conf
+#    when: result.stat.exists
+    
+  - name: Copy mongod.conf
+    template:
+      src: mongod.conf
+      dest: /etc
+      owner: root
+  
+  - stat: path=/tmp/mongodb-27017.sock
+    register: p
+
+  - name: create fake 'nologin' shell
+    file: path=/tmp/mongodb-27017.sock
+          owner=root
+          group=sys
+          mode=0555
+          state={{ "file" if  p.stat.exists else "touch"}} 
+
+#  - name: create /tmp/mongodb-27017.sock
+#    command: mkdir -p /tmp/mongodb-27017.sock
+
+  - name: sudo chown mongod:mongod /tmp/mongodb-27017.sock
+    command: sudo chown mongod:mongod /tmp/mongodb-27017.sock
+  
+  - name: damon-reload
+    command: systemctl daemon-reload
+ 
+  - name: start the mongo service
+    service:
+      name: mongod.service
+      state: started
+
+  - name: enable the mongo service
+    service:
+      name: mongod.service
+      enabled: yes
+
+
+#  - name: Reboot Server 
+#    reboot:
+

@@ -1,0 +1,112 @@
+---
+- name: This is for Kafka Installation
+  hosts: kafka 
+  become: yes
+  become_user: root
+  vars_files:
+  - ../../group_vars/kafkanodes
+  tasks:
+
+#  - name: Include Initiate task
+#    include_tasks: ../../tasks/initial-setup.yml
+
+  - name: disable firewall servicei
+    service:
+       name: firewalld
+       state: stopped
+       enabled: false
+
+  - name: systemctl stop firewalld
+    command: systemctl stop firewalld
+
+  - name: Include Initiate task
+    include_tasks: ../../tasks/initial-java-setup.yml
+
+  - name: create kafka install  dir
+    command: mkdir -p /storage/kafka
+    
+  - name: Copy Kafka install
+    copy:
+       src: ../../copyfile/kafka-file/kafka_2.13-2.8.0.tgz
+       dest: /storage/kafka/kafka_2.13-2.8.0.tgz
+  
+  - name: extract kafka 
+    command: chdir=/storage/kafka tar -xvf kafka_2.13-2.8.0.tgz
+
+  - name: copy serv.properties file 
+    copy:
+      src: server1.properties 
+      dest: /storage/kafka/kafka_2.13-2.8.0/config/
+      mode: u+rw,g-wx,o-rwx
+    when: inventory_hostname == "kafka1"
+
+  - name: copy serv.properties file
+    copy:
+      src: server2.properties
+      dest: /storage/kafka/kafka_2.13-2.8.0/config/
+      mode: u+rw,g-wx,o-rwx
+    when: inventory_hostname == "kafka2"
+
+  - name: copy serv.properties file
+    copy:
+      src: server3.properties
+      dest: /storage/kafka/kafka_2.13-2.8.0/config/
+      mode: u+rw,g-wx,o-rwx
+    when: inventory_hostname == "kafka3"
+
+  - name : Copy systemd hellscript file to kafka1
+    template :
+       src : ../../copyfile/kafka-file/kafka-service/kafka1/kafka.service
+       dest : /etc/systemd/system/kafka.service
+       owner: root
+    when: inventory_hostname == "kafka1"
+
+  - name : Copy systemd hellscript file to kafka2
+    template :
+       src : ../../copyfile/kafka-file/kafka-service/kafka2/kafka.service
+       dest : /etc/systemd/system/kafka.service
+       owner: root
+    when: inventory_hostname == "kafka2"
+
+  - name : Copy systemd hellscript file to kafka3
+    template :
+       src : ../../copyfile/kafka-file/kafka-service/kafka3/kafka.service
+       dest : /etc/systemd/system/kafka.service
+       owner: root
+    when: inventory_hostname == "kafka3"
+
+  - name: command
+    shell: export KAFKA_HEAP_OPTS="-Xms8G -Xmx8G"
+
+  - name: Give Executable permision to root
+    command: chmod 700 /storage/kafka
+
+  - name: daemon reload
+    command: systemctl daemon-reload 
+
+  - name: start the service
+    service:
+       name: kafka
+       state: started
+
+  - name: enable the service
+    service:
+       name: kafka
+       enabled: yes
+
+  - name: Reboot Server
+    reboot: 
+
+#  - name: extract kafka
+#    command: chdir=/storage/kafka/kafka_2.13-3.1.0 ./bin/kafka-storage.sh random-uuid
+#    register: random-uuid.stdout
+
+#  - name: format
+#    shell: chdir=/storage/kafka/kafka_2.13-3.1.0 /bin/kafka-storage.sh format -t {{ item }}
+#    shell: echo "bind {{ item }}" >> /storage/redis/config/redis.conf
+#    with_items:
+#        - "{{  ansible_default_ipv4.address }}"
+#
+#    with_items:
+#        - "{{  ansible_default_ipv4.address }}"
+

@@ -1,0 +1,9 @@
+IpAddresses: http://172.15.100.240
+AccessKey: prod_minio
+SecretKey: prod_minio09876
+
+confsource : ../../copyfile/minio/minio.conf
+confdest: /storage
+
+servicesource : ../../copyfile/minio/minio.service
+servicedest: /etc/systemd/system/

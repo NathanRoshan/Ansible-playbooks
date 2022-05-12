@@ -1,0 +1,63 @@
+---
+- name: Minio Installation
+  hosts: minio
+  become: yes
+  gather_facts: false
+  vars_files:
+  - ../../group_vars/minionodes
+  tasks:
+  
+  - name : Create folder for minio Download
+    command : mkdir -p /storage/minioData
+
+#  - name: Include Initiate task
+#    include_tasks: ../../tasks/initial-setup.yml
+
+
+  - name: Create a directory for minio Download
+    file:
+      path: /storage/minioData
+      state: directory
+      mode: '0755'
+
+  - name: Trasfer Minio Execution
+    copy:
+      src: minio
+      dest: /storage/minio
+
+  - name: Change File permission
+    command: sudo chmod 755 /storage/
+ 
+  - firewalld:
+      port: 9000/tcp
+      zone: public
+      permanent: yes
+      state: enabled
+
+  - name: Reload Firewall 
+    command: firewall-cmd --reload
+
+  - name : Copy shellscript file
+    template : 
+       src : "{{confsource}}"
+       dest : "{{confdest}}"
+       owner: root
+
+  - name : Add systemd minio service files
+    template : 
+       src: "{{servicesource}}"
+       dest:  "{{servicedest}}"
+       owner : root
+
+  - name: Give Executable permision to root
+    command: chmod 700 /storage/minio
+
+#  - name:  reboot the machine with all defaults
+#    reboot:
+
+  - name : Enable minio on Startup boot
+    shell: systemctl enable minio
+
+  - name : Start minio on Startup boot
+    shell: systemctl start minio
+

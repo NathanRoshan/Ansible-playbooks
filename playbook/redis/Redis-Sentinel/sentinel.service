@@ -1,0 +1,15 @@
+[Unit]
+Description=Redis-Sentinel
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/redis-sentinel /storage/redis/redis_source/sentinel.conf --sentinel
+ExecStop=/bin/kill -s TERM $MAINPID
+ExecStartPost=/bin/sh -c "echo $MAINPID > /var/run/redis-sentinel.pid"
+PIDFile="/var/run/redis-sentinel.pid"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

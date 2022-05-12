@@ -1,0 +1,57 @@
+---
+- name: This is for ELK Pre requesties Installation
+  hosts: logstash
+  remote_user: ms2hadm
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  vars:
+    elasticsearch: "{{groups['elasticsearch'][0]}}"
+    logstash: "{{groups['logstash'][0]}}"
+    kibana: "{{groups['kibana'][0]}}"
+    apmserver: "{{groups['apmserver'][0]}}"
+  
+  tasks:
+
+    - name: Install logstash server
+      yum: 
+        name: logstash
+        state: latest      
+
+    - name: create logstash Data  dir
+      command: mkdir -p /storage/logstash/data
+    
+    - name: create logstash Data  dir
+      command: mkdir -p /storage/logstash/logs
+
+    - name: change ownership of the dir
+      command: chown -R logstash:logstash /storage/logstash
+
+    - name: Bind and copy logstash config file
+      template:
+          src: '{{ item.src }}'
+          dest: '{{ item.dest }}'
+      with_items:
+        - {src: '/etc/ansible/elkfiles/logstash.yml',dest: '/etc/logstash/logstash.yml'}
+
+    - name: Add Envirenmnet config
+      template :
+        src: /etc/ansible/elkfiles/logstash
+        dest: /etc/default/
+        owner: root 
+
+    - name : Add systemd logstash service files
+      template : 
+          src: "{{servicesource}}"
+          dest:  "{{servicedest}}"
+          owner : root
+    
+    - name: reload Deamon
+      command: systemctl daemon-reload
+    
+    - name: enable ans start service
+      shell : "{{ item }}"
+      with_items:
+        - systemctl restart logstash
+        - systemctl enable logstash

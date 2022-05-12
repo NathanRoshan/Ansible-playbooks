@@ -1,0 +1,2 @@
+servicesource : ../../copyfile/kafka-file/kafka.service
+servicedest: /etc/systemd/system/

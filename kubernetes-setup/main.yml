@@ -1,0 +1,7 @@
+---
+- import_playbook: ../playbook/initial-setup-allnode/time-chronyd.yml
+- import_playbook: ../playbook/kubernetes/host-entry/hostentry.yml
+- import_playbook: ../playbook/kubernetes/initial-package.yml
+#- import_playbook: ../playbook/kubernetes/k8s-master-setup.yml
+#- import_playbook: ../playbook/kubernetes/k8s-master-after-join-setup.yml
+#- import_playbook: ../playbook/kubernetes/k8s-nodes-setup.yml

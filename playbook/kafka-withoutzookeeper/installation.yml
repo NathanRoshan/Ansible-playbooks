@@ -1,0 +1,38 @@
+- hosts: Kafka
+  become: yes
+  tasks:
+
+   - name: Include Initiate task
+     include_tasks: ../../tasks/initial-setup.yml
+  
+
+   - name: Create Directory "/storage/java"
+     file:
+        path: /storage/java
+        state: directory
+        mode: '0755'
+
+   - name: Copying the Directory's contents (sub directories/files)
+     copy:
+       src: ../../kafka-file/jdk1.8.0_281/
+       dest: /storage/java/jdk1.8.0_281/
+       mode: 0644
+     
+   - name: Create Directory "/storage/kafka"
+     file:
+        path: /storage/kafka
+        state: directory
+        mode: '0755'
+
+   - name: Copying the Directory's contents (sub directories/files)
+     copy:
+       src: ../../kafka-file/kafka_2.13-3.1.0/
+       dest: /storage/kafka/kafka_2.13-3.1.0/
+       mode: 0644
+ 
+   - name: Copying server.properties 
+     copy:
+       src: ../../kafka-file/server.properties.node1/*
+       dest: /storage/kafka/kafka_2.13-3.1.0/config/kraft/
+       mode: 0644
+ 

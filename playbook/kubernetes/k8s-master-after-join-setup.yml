@@ -1,0 +1,18 @@
+- hosts: k8s-master23 
+  become: yes
+  tasks:
+
+    - name: create .kube directory
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: copy admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+
+    - name: chown $(id -u):$(id
+      shell:  chown $(id -u):$(id -g) $HOME/.kube/config

@@ -1,0 +1,22 @@
+---
+- name: This is for mongoDB Config server
+  hosts: mongo
+#  remote_user: ms2hadm
+  become: yes
+#  become_method: sudo
+#  become_user: root
+
+  tasks:
+    
+  - name: Stop Mongo 
+    shell: systemctl stop mongod
+
+  - name: Copy mongod.conf
+    template: 
+      src: mongod.conf
+      dest: /etc
+      owner: root
+
+  - name: Start mongo
+    shell: mongod --config /etc/mongod.conf
+

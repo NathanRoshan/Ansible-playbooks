@@ -1,0 +1,32 @@
+- hosts: csi-dev-k8s-master-03 
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: Generating Join Command and Token...
+      command: kubeadm token create  --print-join-command
+      register: kubeadm_join
+
+
+    - name:  Join Kubernetes Node in Cluster with this command...
+      debug:
+        var: kubeadm_join.stdout
+
+
+    - name: Saving join Command...
+      copy:
+        content: "{{ kubeadm_join.stdout }}"
+        dest: ../../copyfile/joincmd.sh
+        mode: a+x
+      delegate_to: localhost
+
+- hosts: k8s-worker-node
+  become: yes
+  tasks:
+    - name: Copying Join command...
+      copy:
+        src: ../../copyfile/joincmd.sh
+        dest: /root
+        mode: a+x
+
+    - name: Joining the Node...
+      command: bash /root/joincmd.sh

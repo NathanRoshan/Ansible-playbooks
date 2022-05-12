@@ -1,0 +1,60 @@
+- hosts: LB-nodes
+  become: yes
+  tasks:
+
+#  - name: Include Initiate task
+#    include_tasks: ../../tasks/initial-setup.yml 
+ 
+  - name: install keepalived
+    yum:
+      name: keepalived
+      state: present
+
+  - name: install haproxy
+    yum:
+      name: haproxy
+      state: present
+
+  - name: check excisting keepalived file and mv to org 
+    command: chdir=/etc/keepalived mv keepalived.conf org-keepalived.conf
+
+  - name: check excisting ha-proxy file and mv to org 
+    command: chdir=/etc/haproxy mv haproxy.cfg org-haproxy.cfg
+
+  - name: Copy a check_apiserver.sh
+    template:
+      src: check_apiserver.sh
+      dest: /etc/keepalived/check_apiserver.sh
+      mode: '0770'
+
+  - name: Copy  keepalived.conf node1 
+    template:
+      src: /node1/keepalived.conf
+      dest: /etc/keepalived/keepalived.conf
+    when: inventory_hostname == "ansible-lb1"
+
+  - name: Copy  keepalived.conf node2
+    template:
+      src: /node2/keepalived.conf
+      dest: /etc/keepalived/keepalived.conf
+    when: inventory_hostname == "ansible-lb2"
+  
+
+  - name: systemctl enable --now keepalived
+    command: systemctl enable --now keepalived 
+ 
+  - name: Copy  haproxy.cfg
+    template:
+      src: haproxy.cfg
+      dest: /etc/haproxy/haproxy.cfg
+    
+  - name: start  haproxy
+    service:
+      name: haproxy
+      state: restarted
+      enabled: true
+
+      
+
+
+

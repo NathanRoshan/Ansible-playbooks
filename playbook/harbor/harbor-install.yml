@@ -1,0 +1,132 @@
+---
+- name: Harbor installation
+  hosts: harbor
+  become: yes
+  tasks:
+
+#  - name: Include Initiate task
+#    include_tasks: ../../tasks/initial-setup.yml
+
+  - name: Install a list of packages
+    yum:
+      name:
+        - docker
+        - docker-client
+        - docker-client-latest
+        - docker-common
+        - docker-latest
+        - docker-latest-logrotate
+        - docker-logrotate
+        - docker-engine
+      state: absent
+
+  - name: remove the Apache package
+    yum:
+      name: yum-utils
+      state: latest
+
+  - name: add docker repo 
+    command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+  - name: enable nighlty repo 
+    command: yum-config-manager --enable docker-ce-nightly
+
+  - name: enable the test channel
+    shell: yum-config-manager --enable docker-ce-test 
+
+  - name: Install a list of packages
+    yum:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+      state: present
+
+
+  - name: Restart service docker
+    service:
+      name: docker
+      state: restarted
+ 
+  - name: install docker compose 
+    command: curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+  - name: permissions to the binary
+    command: chmod +x /usr/local/bin/docker-compose
+
+
+  - name: Create a directory for harbor
+    file:
+      path: /storage/harbor-install
+      state: directory
+      mode: '0755'
+
+  - name: copy harbor install file 
+    copy:
+      src: ../../copyfile/harbor/harbor-online-installer-v2.4.0.tgz
+      dest: /storage/harbor-install
+
+  - name: Extract tar
+    command: chdir=/storage/harbor-install tar -zxvf harbor-online-installer-v2.4.0.tgz
+
+  - name: Create a directory for  cert
+    file:
+      path: /storage/cert
+      state: directory
+      mode: '0755'
+
+  - name: copy harbor install file
+    copy:
+      src: harbor.yml
+      dest: /storage/harbor-install/harbor
+ 
+  - name: ./prepare
+    shell: chdir=/storage/harbor-install/harbor ./prepare
+
+  - name: copy cert 
+    command: chdir=/storage/install/cert cp harbor.sample.sa.crt  /data/cert/
+    
+  - name: copy cert
+    command: chdir=/storage/install/cert cp harbor.sample.sa.key  /data/cert/
+  
+#  - name: copy harbor cert to data/cert
+#    copy:
+#      src: /storage/install/cert/harbor.sample.sa.crt
+#      dest: /data/cert/
+
+#  - name: copy harbor cert
+#    copy:
+#      src: /storage/install/cert/harbor.sample.sa.key
+#      dest: /data/cert/
+ 
+  - name: Create a directory for certs.d/harbor.sample.sa
+    file:
+      path: /etc/docker/certs.d/harbor.sample.sa
+      state: directory
+      mode: '0755'
+
+#  - name: copy harbor cert to docker certs
+#  #    copy:
+#  #      src: /storage/install/cert/harbor.sample.sa.crt
+#  #      dest: /data/cert/
+#
+#  #  - name: copy harbor cert to docker
+#  #    copy:
+#  #      src: /storage/install/cert/harbor.sample.sa.key
+#  #      dest: /data/cert/
+ 
+  - name: copy cert
+    command: chdir=/storage/install/cert cp harbor.sample.sa.cert  /etc/docker/certs.d/harbor.sample.sa/
+
+  - name: copy cert
+    command: chdir=/storage/install/cert cp harbor.sample.sa.key  /etc/docker/certs.d/harbor.sample.sa/
+ 
+  - name: copy cert
+    command: chdir=/storage/install/cert cp ca.crt /etc/docker/certs.d/harbor.sample.sa/ 
+
+  - name: Restart service docker
+    service:
+      name: docker
+      state: restarted
+
+  

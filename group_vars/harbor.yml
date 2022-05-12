@@ -1,0 +1,23 @@
+
+#hostname: harbor.sample.sa
+ 
+#certsrc: /data/cert/harbor.sample.sa.crt
+#keytsrc: /data/cert/harbor.sample.sa.key
+
+#adminpasswd: kkuh@123
+
+packages:
+  - docker
+  - docker-client
+  - docker-client-latest
+  - docker-common
+  - docker-latest
+  - docker-latest-logrotate
+  - docker-logrotate
+  - docker-engine
+ 
+packages-install:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+ 

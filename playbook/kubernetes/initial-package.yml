@@ -1,0 +1,205 @@
+- hosts: k8s-dev-nodes
+  become: yes
+  tasks:
+  
+#   - name: Include Initiate task
+#     include_tasks: ../../tasks/initial-setup.yml
+
+
+   - name: disable firewall service
+     service:
+        name: firewalld
+        state: stopped
+        enabled: false
+
+   - name: systemctl stop firewalld
+     command: systemctl stop firewalld
+
+   - name: Disable SWAP
+     command: |
+       swapoff -a
+
+   - name: Disable SWAP in fstab
+     lineinfile:
+       path: /etc/fstab
+       regexp: 'swap'
+       state: absent
+    
+   - name: swap-check
+     command:  sed -i '/swap/d' /etc/fstab
+
+   - name: selinux
+     command: sed -i --follow-symlinks 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/sysconfig/selinux
+
+   - name: /etc/sysctl.d/kubernetes.conf
+     copy:
+       src: ../../copyfile/kubernetes.conf
+       dest: /etc/sysctl.d/kubernetes.conf
+       mode: a+x
+   
+   - name: etc/modules-load.d/containerd.conf
+     copy:
+       src: ../../copyfile/containerd.conf
+       dest: /etc/modules-load.d/containerd.conf
+       mode: a+x
+
+   - name: modprobe overlay && modprobe br_netfilter
+     command: modprobe overlay 
+
+   - name: modprobe overlay && modprobe br_netfilter
+     command: modprobe br_netfilter
+
+   - name: modprobe overlay && modprobe br_netfilter
+     copy:
+       src: ../../copyfile/99-kubernetes-cri.conf
+       dest: /etc/sysctl.d/99-kubernetes-cri.conf
+       mode: a+x   
+   
+   - name: iptables -F
+     command: iptables -F
+
+   - name: iptables -P FORWARD ACCEPT
+     command: iptables -P FORWARD ACCEPT 
+
+   - name: disable SELinux
+     command: setenforce 0
+     ignore_errors: yes
+
+   - name: disable SELinux on reboot
+     selinux:
+       state: disabled
+
+   - name: sysctl -w net.ipv4.ip_forward=1
+     command: sysctl -w net.ipv4.ip_forward=1
+
+   - name: sysctl net.ipv4.ip_forward
+     command: sysctl net.ipv4.ip_forward
+
+   - name: sysctl -w net.bridge.bridge-nf-call-iptables=1
+     command: sysctl -w net.bridge.bridge-nf-call-iptables=1
+
+   - name: sysctl --system
+     command: sysctl --system
+
+   - name: modprobe br_netfilter
+     command: modprobe br_netfilter
+
+   - name: sysctl -w net.bridge.bridge-nf-call-iptables=1
+     command: sysctl -w net.bridge.bridge-nf-call-iptables=1
+
+   - name: sysctl net.bridge.bridge-nf-call-iptables
+     command: sysctl net.bridge.bridge-nf-call-iptables
+
+   - name: add Docker YUM repository
+     yum_repository:
+       name: Docker
+       description: Docker YUM repository
+       baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+       gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+       gpgcheck: yes
+
+   - name: "Installing Docker Prerequisite packages"
+     yum:
+       name: "{{ item }}"
+       state: latest
+     with_items:
+        - yum-utils
+        - device-mapper-persistent-data
+        - lvm2
+
+   - name: "Configuring docker-ce repo"
+     get_url:
+       url: https://download.docker.com/linux/centos/docker-ce.repo
+       dest: /etc/yum.repos.d/docker-ce.repo
+       mode: 0644
+
+   - name: install containerd
+     yum:
+       name: containerd
+       state: present
+       update_cache: true
+
+   - name: start containerd
+     service:
+       name: containerd
+       state: started
+       enabled: true
+
+   - name: Create Directory "/storage/containerd"
+     file:
+        path: /storage/containerd
+        state: directory
+        mode: '0755' 
+
+   - name: install containerd
+     shell: |
+             sudo containerd config default | sudo tee /etc/containerd/config.toml
+             sudo systemctl restart containerd
+ 
+   - name: Explicitly specifying named matched groups
+     replace:
+       path: /etc/containerd/config.toml
+       regexp:  "/var/lib/containerd"
+       replace: "/storage/containerd/"
+ 
+   - name: Explicitly specifying named matched groups
+     replace:
+       path: /etc/containerd/config.toml
+       regexp: "/run/containerd"
+       replace: "/storage/containerd/run/"
+ 
+   - name: Explicitly specifying named matched groups
+     replace:
+       path: /etc/containerd/config.toml
+       regexp: "/storage/containerd/run//containerd.sock"
+       replace: "/run/containerd/containerd.sock"
+ 
+   - name: harbor.cs.local.crt copy to /etc/ssl/certs
+     template:
+       src: ../../default/harbor.cs.local.crt
+       dest: /etc/ssl/certs
+       mode: '0755'
+
+   - name: Restart service httpd, in all cases
+     service:
+       name: containerd
+       state: restarted
+
+   - name: add Kubernetes YUM repository
+     yum_repository:
+      name: Kubernetes
+      description: Kubernetes YUM repository
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      gpgcheck: yes
+
+   - name: remove excisting
+     command: yum remove -y kube*
+
+   - name: install kubelet
+     yum:
+        name: kubelet-1.22.0-0
+        state: present
+        update_cache: true
+
+   - name:  daemon-reload
+     command: systemctl daemon-reload
+
+   - name: start kubelet
+     service:
+       name: kubelet
+       state: started
+       enabled: true
+
+   - name: install kubectl
+     yum:
+        name: kubectl-1.22.0-0
+        state: present
+
+   - name: install kubeadm
+     yum:
+        name: kubeadm-1.22.0-0
+        state: present
+
+#   - name:  reboot the machine with all defaults
+#     reboot:

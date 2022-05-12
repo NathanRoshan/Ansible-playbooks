@@ -1,0 +1,32 @@
+---
+- name: This is for ELK Pre requesties Installation
+  hosts: elknodes
+  remote_user: ms2hadm
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  vars:
+    elasticsearch: "{{groups['elasticsearch'][0]}}"
+    logstash: "{{groups['logstash'][0]}}"
+    kibana: "{{groups['kibana'][0]}}"
+    apmserver: "{{groups['apmserver'][0]}}"
+  
+  tasks:
+
+    - debug: 
+        msg: "{{elasticsearch}}"    
+    - debug:
+        msg: "{{logstash}}"
+    - debug:
+        msg: "{{kibana}}"
+    - debug:
+        msg: "{{apmserver}}"
+
+    - name: Include Initiate YML
+      include_tasks: /etc/ansible/tasks/initiate.yml
+
+    - name: ELK reposotory configuration
+      copy :
+        src : /etc/ansible/elkfiles/elasticsearch.repo
+        dest : /etc/yum.repos.d/elasticsearch.repo

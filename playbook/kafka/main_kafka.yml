@@ -1,0 +1,6 @@
+---
+ - import_playbook: installzookeeper.yml
+ - import_playbook: installkafka.yml
+ - import_playbook: config_kafkanode1.yml
+ - import_playbook: config_kafkanode2.yml
+ - import_playbook: config_kafkanode3.yml

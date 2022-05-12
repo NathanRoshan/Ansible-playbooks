@@ -1,0 +1,106 @@
+---
+- name: This is for zookeeper Installation
+  hosts: zookeeper1
+  become: yes
+  vars_files:
+  - ../../group_vars/zookeepernodes
+  vars:
+    zookeeper1: "{{groups['zookeeper'][0]}}"
+    zookeeper2: "{{groups['zookeeper'][1]}}"
+    zookeeper3: "{{groups['zookeeper'][2]}}"    
+    myid: "{{groups.zookeeper.index(inventory_hostname) |int +1}}"
+  
+  tasks:
+
+#    - name: Include Initiate YML
+#      include_tasks: ../../tasks/initial-java-setup.yml
+
+    - name: disable firewall service
+      service:
+        name: firewalld
+        state: stopped
+        enabled: false
+
+    - name: systemctl stop firewalld
+      command: systemctl stop firewalld
+
+    - name: create zookeper install  dir
+      command: mkdir -p /storage/zookeeper
+    - name: create zookeper install  dir
+      command: mkdir -p /storage/zookeeper/data
+
+    - name: Copy zookeeper ins
+      copy:
+        src: ../../copyfile/kafka-file/zookeeper-3.4.14.tar.gz
+        dest: /storage/zookeeper/zookeeper-3.4.14.tar.gz
+
+    - name: extract zookeper
+      command: chdir=/storage/zookeeper tar -xvf zookeeper-3.4.14.tar.gz
+
+    - name: Bind and copy zookeeper config file
+      template:
+         src: '{{ item.src }}'
+         dest: '{{ item.dest }}'
+         mode: 0777
+      with_items:
+       - {src: '../../copyfile/kafka-file/zookeper/zoo.cfg',dest: '/storage/zookeeper/zookeeper-3.4.14/conf/zoo.cfg'}
+
+#    - name: ctear pid file 
+#      template:
+#         src: ../../copyfile/kafka-file/zookeper/myid1
+#         dest: /storage/zookeeper/myid
+#         mode: 0777
+
+    - name: Bind and copy zookeeper myid file
+      template:
+         src: '{{ item.src }}'
+         dest: '{{ item.dest }}'
+         mode: 0777
+      with_items:
+        - {src: '../../copyfile/kafka-file/zookeper/myid',dest: '/storage/zookeeper/data/myid'}
+
+    - name: Give Executable permision to root
+      command: chmod 700 /storage/zookeeper
+
+    - name : Copy systemd hellscript file
+      template :
+         src : ../../copyfile/kafka-file/zookeeper.service
+         dest : /lib/systemd/system/
+         owner: root
+
+    - name: command
+      shell: export KAFKA_HEAP_OPTS="-Xms1536M -Xmx1536M"    
+ 
+    - name: daemon reload
+      command: systemctl daemon-reload   
+
+    - name: start the service
+      service:
+         name: zookeeper.service
+         state: started
+
+    - name: enable the service
+      service:
+         name: zookeeper.service
+         enabled: yes
+
+    - firewalld:
+         port: 2181/tcp
+         permanent: yes
+         state: enabled
+
+    - firewalld:
+         port: 2888/tcp
+         permanent: yes
+         state: enabled
+
+    - firewalld:
+         port: 3888/tcp
+         permanent: yes
+         state: enabled
+
+    - name: Flush IP tables
+      shell: iptables -F
+
+    - name: Reboot Server
+      reboot:

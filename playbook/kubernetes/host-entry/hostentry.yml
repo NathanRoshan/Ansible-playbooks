@@ -1,0 +1,9 @@
+- hosts: k8s-nodes
+  become: yes
+  gather_facts: yes
+  tasks:
+ 
+    - name: hostname
+      template:
+        src:  ../host.j2
+        dest: /etc/hosts

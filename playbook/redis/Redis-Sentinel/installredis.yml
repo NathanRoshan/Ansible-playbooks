@@ -1,0 +1,191 @@
+---
+- name: This is for Redis Installation and Startup
+  hosts: redis1 
+  become: yes
+  tasks:
+
+  - name: Include Initiate task
+    include_tasks: ../../../tasks/initial-setup.yml
+
+#  - name: Include Initiate task
+#    include_tasks: ../../../tasks/initial-java-setup.yml
+
+  
+  - name: disable firewall service
+    service:
+      name: firewalld
+      state: stopped
+      enabled: false
+
+  - name: systemctl stop firewalld
+    command: systemctl stop firewalld  
+
+  - name: Create a directory for Redis
+    file:
+      path: /storage/redis
+      state: directory
+      mode: '0755'  
+
+  - name: Disabling SELinux state
+    selinux:
+      state: disabled
+
+  - name: copy  Redis tar file to destinations host
+    copy:
+      src: ../../../repository/installfiles/7.0.0.tar.gz
+      dest: /storage/redis/7.0.0.tar.gz
+
+  
+  - name: install gcc
+    yum:
+      name: gcc
+      state: present
+
+  - name: Extract tar
+    command: chdir=/storage/redis tar -zxvf 7.0.0.tar.gz
+
+  - name: checking if directory is excist 
+    stat:
+      path: /storage/redis/redis_source
+    register: redis_source
+
+
+  - name: change directiry and move to redis-source
+    command: chdir=/storage/redis/ mv redis-7.0.0 redis_source
+    when: not redis_source.stat.exists
+
+#  - name: move excisting
+#    command: chdir=/storage/redis/redis_source/ mv redis.conf redis-org.conf
+
+#  - name: move excisting
+#    command: chdir=/storage/redis/redis_source/ mv sentinel.conf sentinel-org.conf 
+
+  - name: make Redis
+    command: chdir=/storage/redis/redis_source make distclean
+
+  - name: make Redis
+    command: chdir=/storage/redis/redis_source make
+
+  - name: Create a directory for Redis sentinel
+    file:
+      path: /storage/redis/sentinel
+      state: directory
+      mode: '0755'
+
+  - name: Create a directory for Redis data
+    file:
+      path: /storage/redis/data
+      state: directory
+      mode: '0755'
+
+  - name: Create a pid file for sentinel
+    command: touch /var/run/redis-sentinel.pid
+
+  - name: Create a pid file for redis
+    command: touch /var/run/redis_6379.pid
+
+  - name: redis pid permisson
+    command : chmod -R 770 /var/run/redis-sentinel.pid
+
+  - name: redis pid permisson 
+    command : chmod -R 770 /var/run/redis_6379.pid
+  
+  - name: Copy Redis config
+    template:
+      src: ../../../copyfile/sentinel/redis.conf
+      dest: /storage/redis/redis_source/redis.conf
+      mode: 0777
+
+  - name: replicaof 
+    shell: echo "replicaof 172.15.100.220 6379" >> /storage/redis/redis_source/redis.conf
+    when: inventory_hostname == "redis2"
+
+  - name: replicaof
+    shell: echo "replicaof 172.15.100.220 6379" >> /storage/redis/redis_source/redis.conf
+    when: inventory_hostname == "redis3"
+
+#  - name: copy binary file redis-sentinel
+#    command: chdir=/storage/redis/redis_source/src cp redis-sentinel /usr/local/bin/
+
+#  - name: copy binary file redis-server
+#    command: chdir=/storage/redis/redis_source/src cp redis-server  /usr/local/bin/
+
+#  - name: copy binary file redis-cli
+#    command: chdir=/storage/redis/redis_source/src cp redis-cli  /usr/local/bin/
+
+  - name: Copy Redis systemd file
+    template:
+      src: redis.service
+      dest: /etc/systemd/system/redis.service
+      mode: 0777
+
+  - name: Copy Redis sentinal systemcd file
+    template:
+      src: sentinel.service
+      dest: /etc/systemd/system/sentinel.service
+      mode: 0777
+
+
+#  - name: Copy Redis config
+#    template:
+#      src: ../../../copyfile/sentinel/redis/node2/redis.conf
+#      dest: /storage/redis/redis_source/redis.conf
+#      mode: 0777
+#    when: inventory_hostname == "minio-redis-2"  
+
+#  - name: Copy Redis config
+#    template:
+#      src: ../../../copyfile/sentinel/redis/node3/redis.conf
+#      dest: /storage/redis/redis_source/redis.conf
+#      mode: 0777
+#    when: inventory_hostname == "minio-redis-3"
+
+  - name: Copy sentinal config
+    template:
+      src: ../../../copyfile/sentinel/sentinel.conf
+      dest: /storage/redis/redis_source/sentinel.conf
+      mode: 0777
+
+
+  - name: Bind Redis IP
+    shell: echo "bind {{ item }}" >> /storage/redis/redis_source/redis.conf
+    with_items:
+        - "{{  ansible_default_ipv4.address }}"
+
+
+  - name: Bind Sentinel IP
+    shell: echo "sentinel monitor mymaster 172.15.100.220 6379 2" >> /storage/redis/redis_source/sentinel.conf
+
+  - name: chmod 777 -R /var/run/redis_6379.pid
+    command: chmod 777 -R /var/run/redis_6379.pid
+
+  - name: daemon-reload
+    command: systemctl daemon-reload
+
+  - name: enable  Sentinel
+    service:
+       name: sentinel.service
+       enabled: yes
+
+  - name: start the Sentinel  service
+    service:
+       name: sentinel.service
+       state: started
+
+
+  - name: enable Redis
+    service:
+       name: redis.service
+       enabled: yes
+
+  - name: start the Redis
+    service:
+       name: redis.service
+       state: started
+   
+  - name:  reboot the machine with all
+    reboot:
+ 
+  - name: netstat -tupln 
+    command: netstat -tupln
+    register: netstat_result

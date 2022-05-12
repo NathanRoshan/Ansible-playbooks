@@ -1,0 +1,49 @@
+---
+
+
+- name: Install the 'Development tools' package group
+  yum:
+    name: java-1.8.0-openjdk.x86_64
+    state: present
+
+- name: add lines to bashrc
+  lineinfile: 
+    dest: /etc/bashrc
+    line: '{{ item }}'
+  with_items:
+    - 'export JRE_HOME=/usr/lib/jvm/jre'
+    - 'export JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk'
+    - 'PATH=$PATH:$JRE_HOME:$JAVA_HOME' 
+
+- name: source /etc/bashrc
+  shell: source /etc/bashrc
+
+- name: Create a directory for JAVA
+  file:
+    path: /storage/java
+    state: directory
+    mode: '0755'
+
+- name: copy Java tar
+  copy:
+    src: ../repository/installfiles/jdk-8u152-linux-x64.tar.gz
+    dest: /storage/java/jdk-8u152-linux-x64.tar.gz
+
+- name: Unzip Java tar
+  command: chdir=/storage/java tar -zxvf jdk-8u152-linux-x64.tar.gz
+
+- name: Set Path Variable
+  lineinfile:
+   path : ~/.bashrc
+   line: export JAVA_HOME=/storage/java/jdk1.8.0_152
+
+- name: Set Path Variable2
+  lineinfile:
+   path: /root/.bashrc
+   line: PATH=$JAVA_HOME/bin:$PATH
+
+- name: Bash File reload
+  shell: source /root/.bashrc
+
+- name: Repo Config
+  ini_file: dest=/etc/yum/pluginconf.d/search-disabled-repos.conf section=main option=notify_only value=0 backup=yes

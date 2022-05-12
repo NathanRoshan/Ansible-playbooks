@@ -1,0 +1,30 @@
+---
+- name: This is for ELK Pre requesties Installation
+  hosts: logstash
+  remote_user: ms2hadm
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  vars:
+    elasticsearch: "{{groups['elasticsearch'][0]}}"
+    logstash: "{{groups['logstash'][0]}}"
+    kibana: "{{groups['kibana'][0]}}"
+    apmserver: "{{groups['apmserver'][0]}}"
+  
+  tasks:
+
+    - name : Copy shellscript file
+      template : 
+        src : "{{confsource}}"
+        dest : "{{confdest}}"
+        owner: root
+    
+    - name: test configuration
+      command: sudo -u logstash /usr/share/logstash/bin/logstash --path.settings /etc/logstash -t
+    
+    - name: enable ans start service
+      shell : "{{ item }}"
+      with_items:
+        - systemctl restart logstash
+            

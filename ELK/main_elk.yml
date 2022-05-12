@@ -1,0 +1,8 @@
+---
+    - import_playbook: elkprereq.yml
+    - import_playbook: installelasticsearch.yml
+    - import_playbook: installlogstash.yml
+    - import_playbook: logsinkkafka.yml
+    - import_playbook: installkibana.yml
+    - import_playbook: installapmserver.yml
+   

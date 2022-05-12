@@ -1,0 +1,13 @@
+[Unit]
+Description = MINIO
+
+[Service]
+WorkingDirectory=/storage/
+
+EnvironmentFile=/storage/minio.conf
+
+ExecStart=/storage/minio server {{IpAddresses}}:9000/storage/minioData
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,9 @@
+- hosts: k8s-nodes
+  become: yes
+  tasks:
+
+   - name: harbor.cs.local.crt copy to /etc/ssl/certs
+     template:
+       src: ../../default/harbor.cs.local.crt
+       dest: /etc/ssl/certs
+       mode: '0755'

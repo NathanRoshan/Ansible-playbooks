@@ -1,0 +1,28 @@
+- hosts: k8s-master1
+  become: yes
+  tasks:
+#    - name: initialize K8S cluster
+#      command: kubeadm init --control-plane-endpoint="172.15.100.100:6443" --upload-certs --apiserver-advertise-address=172.15.100.228 --pod-network-cidr=10.244.0.0/16
+#      register: kubeadm_join_m
+
+#    - name:  Join Kubernetes Node in Cluster with this command...
+#      debug:
+#        var: kubeadm_join_m.stdout
+
+    - name: create .kube directory
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: copy admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+
+    - name: chown $(id -u):$(id
+      shell:  chown $(id -u):$(id -g) $HOME/.kube/config
+
+    - name: install Pod network
+      command: kubectl apply -f https://github.com/coreos/flannel/raw/master/Documentation/kube-flannel.yml 

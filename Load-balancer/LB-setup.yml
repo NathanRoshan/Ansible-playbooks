@@ -1,0 +1,3 @@
+---
+- import_playbook: ../playbook/initial-setup-allnode/time-chronyd.yml
+- import_playbook: ../playbook/LB/install_package.yml

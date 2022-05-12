@@ -1,0 +1,35 @@
+---
+- name: This is for ELK Pre requesties Installation
+  hosts: kibana
+  remote_user: ms2hadm
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  vars:
+    elasticsearch: "{{groups['elasticsearch'][0]}}"
+    logstash: "{{groups['logstash'][0]}}"
+    kibana: "{{groups['kibana'][0]}}"
+    apmserver: "{{groups['apmserver'][0]}}"
+  
+  tasks:
+
+    - name: Install Kibana server
+      yum: 
+        name: kibana
+        state: latest      
+
+    - name: Bind and copy kibana config file
+      template:
+          src: '{{ item.src }}'
+          dest: '{{ item.dest }}'
+      with_items:
+        - {src: '/etc/ansible/elkfiles/kibana.yml',dest: '/etc/kibana/kibana.yml'}
+    
+    - name: enable ans start service
+      shell : "{{ item }}"
+      with_items:
+        - systemctl restart kibana
+        - systemctl enable kibana
+        - firewall-cmd --add-port=5601/tcp --permanent
+        - firewall-cmd --reload

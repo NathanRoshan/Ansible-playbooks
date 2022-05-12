@@ -1,0 +1,2 @@
+servicesource : ../../copyfile/kafka-file/zookeeper.service
+servicedest: /lib/systemd/system/

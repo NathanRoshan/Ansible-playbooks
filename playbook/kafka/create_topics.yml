@@ -1,0 +1,35 @@
+---
+- name: Create topics
+  hosts: kafkanode1
+  remote_user: root
+  become: yes
+  become_method: sudo
+  become_user: root
+  vars_files: "{{var_file}}"
+  tasks:
+    - name: Load list of topics to create
+      include_vars:
+        file: /etc/ansible/ansible-configuration/kafkafiles/test-topics.yml
+    - name: Echo Java HOME
+      command: echo $JAVA_HOME
+      register: out
+    - name: Debug JAVA_HOME
+      debug: var=out.stdout_lines
+    - name: Create Topics
+      command:
+        argv:
+          - "{{ create_topic_sh }}"
+          - --create
+          - --zookeeper
+          - "{{ zookeeper }}"
+          - --replication-factor
+          - "{{ replication_factor }}"
+          - --partitions
+          - "{{ partitions }}"
+          - --topic
+          - "{{ item }}"
+      loop: "{{ topics }}"
+    - name: Create Topics with custom requirements
+      shell: >
+        {{ create_topic_sh }} --create --zookeeper {{ zookeeper }} {{ item }}
+      loop: "{{ custom_topics }}"

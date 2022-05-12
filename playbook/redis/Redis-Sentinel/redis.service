@@ -1,0 +1,15 @@
+[Unit]
+Description=Redis In-Memory Data Store
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/redis-server /storage/redis/redis_source/redis.conf
+ExecStop=/bin/kill -s TERM $MAINPID
+ExecStartPost=/bin/sh -c "echo $MAINPID > /var/run/redis_6379.pid"
+PIDFile="/var/run/redis_6379.pid"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

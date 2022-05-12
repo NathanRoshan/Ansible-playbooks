@@ -1,0 +1,38 @@
+---
+- name: This is for ELK Pre requesties Installation
+  hosts: apmserver
+  remote_user: ms2hadm
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  vars:
+    elasticsearch: "{{groups['elasticsearch'][0]}}"
+    logstash: "{{groups['logstash'][0]}}"
+    kibana: "{{groups['kibana'][0]}}"
+    apmserver: "{{groups['apmserver'][0]}}"
+  
+  tasks:
+
+    - name: Transfer rmp file
+      copy:
+        src: /etc/ansible/installfiles/apm-server-7.9.3-x86_64.rpm
+        dest: /storage/apm-server-7.9.3-x86_64.rpm
+
+    - name: Add APM Repo
+      command: chdir=/storage rpm -ivh apm-server-7.9.3-x86_64.rpm    
+
+    - name: Bind and copy apmserver config file
+      template:
+          src: '{{ item.src }}'
+          dest: '{{ item.dest }}'
+      with_items:
+        - {src: '/etc/ansible/elkfiles/apm-server.yml',dest: '/etc/apm-server/apm-server.yml'}
+    
+    - name: enable ans start service
+      shell : "{{ item }}"
+      with_items:
+        - systemctl start apm-server
+        - systemctl enable apm-server
+        - firewall-cmd --add-port=8200/tcp --permanent
+        - firewall-cmd --reload

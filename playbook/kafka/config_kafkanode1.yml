@@ -1,0 +1,67 @@
+---
+- name: This is for Kafka-node1 Config
+  hosts: kafkanode1
+ # remote_user: opc
+  become: yes
+ # become_method: sudo
+ #become_user: root
+
+  vars:
+    zookeeper1: "{{groups['kafka'][0]}}"
+    zookeeper2: "{{groups['kafka'][1]}}"
+    zookeeper3: "{{groups['kafka'][2]}}"
+
+  tasks: 
+  - name: Bind and copy kafka config file to Brocker1
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+    with_items:
+      - {src: '../../copyfile/kafka-file/node1/server1.properties',dest: '/storage/kafka/kafka_2.13-2.8.0/config/server1.properties'}
+
+  - name: Bind and copy kafka config file to Brocker2
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+    with_items:
+      - {src: '../../copyfile/kafka-file/node1/server2.properties',dest: '/storage/kafka/kafka_2.13-2.8.0/config/server2.properties'}
+
+  - name: Bind and copy kafka config file to brocker3
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 0777
+    with_items:
+      - {src: '../../copyfile/kafka-file/node1/server3.properties',dest: '/storage/kafka/kafka_2.13-2.8.0/config/server3.properties'}
+
+  - name: run kafka B1
+    command: chdir=/storage/kafka/kafka_2.13-2.8.0 ./bin/kafka-server-start.sh  -daemon  config/server1.properties
+
+  - firewalld:
+      port: 9092/tcp
+      zone: public
+      permanent: yes
+      state: enabled
+
+  - name: run kafka B2
+    command: chdir=/storage/kafka/kafka_2.13-2.8.0 ./bin/kafka-server-start.sh  -daemon  config/server2.properties
+
+  - firewalld:
+      port: 9093/tcp
+      zone: public
+      permanent: yes
+      state: enabled
+
+  - name: run kafka B3
+    command: chdir=/storage/kafka/kafka_2.13-2.8.0 ./bin/kafka-server-start.sh  -daemon  config/server3.properties
+
+  - firewalld:
+      port: 9094/tcp
+      zone: public
+      permanent: yes
+      state: enabled
+
+  - name: Flush IP tables
+    shell: iptables -F

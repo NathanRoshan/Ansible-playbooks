@@ -1,0 +1,44 @@
+---
+- name: This is for ELK Pre requesties Installation
+  hosts: elasticsearch
+  remote_user: ms2hadm
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  vars:
+    elasticsearch: "{{groups['elasticsearch'][0]}}"
+    logstash: "{{groups['logstash'][0]}}"
+    kibana: "{{groups['kibana'][0]}}"
+    apmserver: "{{groups['apmserver'][0]}}"
+  
+  tasks:
+
+    - name: Install elasticsearch server
+      yum: 
+        name: elasticsearch
+        state: latest      
+
+    - name: create elasticsearch Data  dir
+      command: mkdir -p /storage/elasticsearch/data
+    
+    - name: create elasticsearch Data  dir
+      command: mkdir -p /storage/elasticsearch/logs
+
+    - name: change ownership of the dir
+      command: chown -R elasticsearch:elasticsearch /storage/elasticsearch
+
+    - name: Bind and copy elasticsearch config file
+      template:
+          src: '{{ item.src }}'
+          dest: '{{ item.dest }}'
+      with_items:
+        - {src: '/etc/ansible/elkfiles/elasticsearch.yml',dest: '/etc/elasticsearch/elasticsearch.yml'}
+    
+    - name: enable ans start service
+      shell : "{{ item }}"
+      with_items:
+        - systemctl restart elasticsearch
+        - systemctl enable elasticsearch
+        - firewall-cmd --add-port=9200/tcp --permanent
+        - firewall-cmd --reload

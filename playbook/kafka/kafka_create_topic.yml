@@ -1,0 +1,39 @@
+---
+- name: This is for creating Kafka Topic
+  hosts: kafkanode1
+ # remote_user: opc
+  become: yes
+ # become_method: sudo
+  become_user: root
+
+  vars:
+    kafka_topics: /storage/kafka/kafka_2.12-2.1.1/bin/kafka-topics.sh 
+    kafka_server: "{{ kafkanode1 }}"
+    kafka_port: 9092
+    kafka: "{{ kafka_server }}:{ { kafka_port }}"
+    zookeeper_server: "{{ kafkanode1 }}"
+    zookeeper_port: 2182
+    zookeeper: "{{ zookeeper_server }}:{ { zookeeper_port }}"
+    replication_factor: 3
+    partitions: 9
+
+  tasks: 
+
+  - name: Load All topics to create
+    include_vars:
+      file: /etc/ansible/kafkafiles/create_topics.yml
+
+  - name: Create Topics
+    command:
+      argv: 
+        - "{{ kafka_topics }}"
+        - --create
+        - --zookeeper
+        - "{{ zookeeper }}"
+        - --replication-factor 
+        - "{{ replication_factor }}"
+        - --partitions 
+        - "{{ partitions }}"
+        - --topic
+        - "{{ item }}"
+    loop: "{{ topics }}"
